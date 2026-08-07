@@ -279,7 +279,7 @@ class ClaudeLogWatcher:
                 return
                 
             # Find model
-            model = data.get("model") or data.get("metadata", {}).get("model") or "claude-3-5-sonnet"
+            model = data.get("model") or data.get("message", {}).get("model") or data.get("metadata", {}).get("model") or "unknown"
             
             # Fetch cost
             pricing = price_registry.get_pricing(model)
