@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Cost Hub</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;700;900&family=Plus+Jakarta+Sans:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="index.css">
+</head>
+<body class="dark-theme">
+    <!-- Shifting background orbs -->
+    <div class="glass-bg">
+        <div class="orb orb-1"></div>
+        <div class="orb orb-2"></div>
+        <div class="orb orb-3"></div>
+    </div>
+
+    <div class="app-wrapper">
+        <!-- Header -->
+        <header class="main-header">
+            <div class="header-brand">
+                <div class="icon-hexagon">🤖</div>
+                <div class="brand-info">
+                    <h1>AI Cost Hub</h1>
+                    <div class="status-indicator">
+                        <span id="statusOrb" class="status-orb glowing-green"></span>
+                        <span id="statusText" class="status-label">Active Monitoring</span>
+                    </div>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button id="toggleSettingsBtn" class="btn btn-glass-primary">⚙️ Control Center</button>
+            </div>
+        </header>
+
+        <!-- 3-Column Dashboard Layout -->
+        <main class="hub-grid">
+            <!-- Left: Hero Analytics (Budget & Trend) -->
+            <section class="grid-column column-hero">
+                <!-- Radial Budget Ring -->
+                <div class="card card-radial-spend">
+                    <div class="dial-wrapper">
+                        <svg class="radial-svg" viewBox="0 0 100 100">
+                            <circle class="track-bg" cx="50" cy="50" r="42"></circle>
+                            <circle id="progressCircle" class="track-progress" cx="50" cy="50" r="42"></circle>
+                        </svg>
+                        <div class="dial-content">
+                            <span class="currency-tag">Spent Today</span>
+                            <div class="readout-wrapper">
+                                <span class="neon-dollar">$</span>
+                                <h2 id="todayCost" class="glowing-text">0.00</h2>
+                            </div>
+                            <span class="budget-limit">of $<span id="dailyBudgetLabel">5.00</span> limit</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Primary Metrics Pills -->
+                <div class="compact-metrics">
+                    <div class="card card-mini-metric">
+                        <span class="emoji">📥</span>
+                        <div class="metric-text">
+                            <h4>Prompt In</h4>
+                            <p id="totalInputTokens">0</p>
+                        </div>
+                    </div>
+                    <div class="card card-mini-metric">
+                        <span class="emoji">📤</span>
+                        <div class="metric-text">
+                            <h4>Response Out</h4>
+                            <p id="totalOutputTokens">0</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 7-Day Trend Sparkline -->
+                <div class="card card-sparkline">
+                    <div class="sparkline-header">
+                        <h3>Weekly Trend</h3>
+                        <span id="weeklyAverage" class="sparkline-subtext">$0.00 avg / day</span>
+                    </div>
+                    <div class="sparkline-container">
+                        <svg id="trendSvg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                            <defs>
+                                <linearGradient id="sparklineGrad" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stop-color="var(--color-primary)" stop-opacity="0.25"></stop>
+                                    <stop offset="100%" stop-color="var(--color-primary)" stop-opacity="0.00"></stop>
+                                </linearGradient>
+                            </defs>
+                            <path id="trendArea" fill="url(#sparklineGrad)" d=""></path>
+                            <path id="trendPath" fill="none" stroke="var(--color-primary)" stroke-width="2.5" stroke-linecap="round" d=""></path>
+                        </svg>
+                        <div class="sparkline-days" id="sparklineDays">
+                            <!-- Filled dynamically by JS -->
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Center: Spend Distribution & Share -->
+            <section class="grid-column column-insights">
+                <!-- Providers Progress -->
+                <div class="card card-providers">
+                    <h3>Spend by Provider</h3>
+                    <div class="providers-stack" id="providersList">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+
+                <!-- Models Bar Chart -->
+                <div class="card card-models-bar">
+                    <h3>Today's Model Breakdown</h3>
+                    <div class="chart-scroll-area" id="modelsBreakdownChart">
+                        <!-- Filled by JS -->
+                    </div>
+                </div>
+            </section>
+
+            <!-- Right: Real-time Activity Timeline -->
+            <section class="grid-column column-timeline">
+                <div class="card card-timeline">
+                    <div class="card-timeline-header">
+                        <h3>Live Activity Stream</h3>
+                        <span class="live-tag"><span class="pulse-dot"></span> Live Feed</span>
+                    </div>
+                    <div class="timeline-container" id="activityTimeline">
+                        <!-- Vertical timeline list filled by JS -->
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Slide-out Control Center Drawer -->
+    <div id="settingsDrawer" class="drawer-overlay">
+        <div class="drawer-panel">
+            <header class="drawer-header">
+                <h2>Control Center</h2>
+                <button id="closeSettingsBtn" class="btn-close">✕</button>
+            </header>
+
+            <div class="drawer-content">
+                <!-- Config Budget -->
+                <div class="drawer-section">
+                    <h3>Budget Allocation</h3>
+                    <form id="configForm" class="drawer-form">
+                        <div class="form-row">
+                            <div class="input-glow-group">
+                                <span class="prefix">$</span>
+                                <input type="number" step="0.01" min="0.10" id="dailyBudgetInput" placeholder="5.00">
+                            </div>
+                            <button type="submit" class="btn btn-primary">Save Limit</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Pricing Overrides -->
+                <div class="drawer-section">
+                    <h3>Model Rate Overrides</h3>
+                    <form id="overrideForm" class="override-drawer-form">
+                        <input type="text" id="overrideModel" placeholder="Model Name (e.g. gpt-4o)" required>
+                        <div class="input-grid-row">
+                            <div class="input-glow-group-sm">
+                                <input type="number" step="0.01" id="overrideInputRate" placeholder="Input $/M" required>
+                            </div>
+                            <div class="input-glow-group-sm">
+                                <input type="number" step="0.01" id="overrideOutputRate" placeholder="Output $/M" required>
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-secondary-glow">+ Register Override</button>
+                    </form>
+
+                    <div class="overrides-scroll-list">
+                        <table class="drawer-table">
+                            <thead>
+                                <tr>
+                                    <th>Model</th>
+                                    <th>In ($/M)</th>
+                                    <th>Out ($/M)</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="overridesList">
+                                <!-- Filled by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Action Triggers -->
+                <div class="drawer-section drawer-actions-section">
+                    <h3>Maintenance Controls</h3>
+                    <div class="drawer-action-buttons">
+                        <button id="syncBtn" class="btn btn-action-secondary">🔄 Sync Claude Logs</button>
+                        <button id="resetBtn" class="btn btn-action-danger">🗑️ Clear Today's Stats</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Import -->
+    <script src="dashboard.js"></script>
+</body>
+</html>

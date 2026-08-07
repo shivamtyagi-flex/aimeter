@@ -1,0 +1,11 @@
+# Compiled Swift application
+AIUsageTracker
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# OS Metadata
+.DS_Store
+Thumbs.db
