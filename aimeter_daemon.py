@@ -14,7 +14,7 @@ import time
 from datetime import datetime, timedelta
 
 # Setup directories
-BASE_DIR = os.path.expanduser("~/.ai_usage_tracker")
+BASE_DIR = os.path.expanduser("~/.aimeter")
 os.makedirs(BASE_DIR, exist_ok=True)
 DB_PATH = os.path.join(BASE_DIR, "usage.db")
 PRICE_MAP_PATH = os.path.join(BASE_DIR, "model_prices.json")
@@ -135,7 +135,7 @@ class PriceRegistry:
         url = "https://raw.githubusercontent.com/BerriAI/litellm/main/model_prices_and_context_window.json"
         try:
             print("Fetching latest model pricing registry from LiteLLM...")
-            req = urllib.request.Request(url, headers={'User-Agent': 'AIUsageTracker/1.0'})
+            req = urllib.request.Request(url, headers={'User-Agent': 'AIMeter/1.0'})
             with urllib.request.urlopen(req, timeout=10) as response:
                 data = json.loads(response.read().decode())
                 self.prices = data

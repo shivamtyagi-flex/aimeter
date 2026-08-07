@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-echo "=== AI Cost Control Installer ==="
+echo "=== AIMeter Installer ==="
 echo "Compiling the native Menu Bar application on your machine..."
 
 # Verify swiftc is available
@@ -13,13 +13,13 @@ if ! command -v swiftc &> /dev/null; then
 fi
 
 # Compile the Swift application
-swiftc MenuBarApp.swift -o AIUsageTracker
-echo "✅ Compilation successful! Generated 'AIUsageTracker' executable."
+swiftc MenuBarApp.swift -o aimeter
+echo "✅ Compilation successful! Generated 'aimeter' executable."
 
 echo ""
 echo "=== Setup Instructions ==="
 echo "1. Run the app in the background:"
-echo "   ./AIUsageTracker &"
+echo "   ./aimeter &"
 echo ""
 echo "2. Add these environment variables to your shell profile (~/.zshrc or ~/.bashrc)"
 echo "   to track your API calls:"

@@ -14,14 +14,14 @@ class DaemonManager {
         print("Starting Python daemon...")
         let exeURL = URL(fileURLWithPath: CommandLine.arguments[0])
         let exeDir = exeURL.deletingLastPathComponent()
-        let scriptPath = exeDir.appendingPathComponent("tracker_daemon.py").path
+        let scriptPath = exeDir.appendingPathComponent("aimeter_daemon.py").path
         
         if !FileManager.default.fileExists(atPath: scriptPath) {
-            let fallbackPath = FileManager.default.currentDirectoryPath + "/tracker_daemon.py"
+            let fallbackPath = FileManager.default.currentDirectoryPath + "/aimeter_daemon.py"
             if FileManager.default.fileExists(atPath: fallbackPath) {
                 runProcess(scriptPath: fallbackPath)
             } else {
-                print("Could not find tracker_daemon.py in executable dir or current working dir.")
+                print("Could not find aimeter_daemon.py in executable dir or current working dir.")
             }
         } else {
             runProcess(scriptPath: scriptPath)
