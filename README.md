@@ -1,11 +1,22 @@
-# 🤖 AIMeter
+<p align="center">
+  <img src="assets/app_icon.png" alt="AIMeter Icon" width="128" height="128">
+</p>
 
-A real-time, pay-as-you-go AI API usage and cost monitor for macOS. Featuring a native status bar widget and a gorgeous glassmorphic web control center.
+<h1 align="center">🤖 AIMeter</h1>
+
+<p align="center">
+A real-time, pay-as-you-go AI API usage and cost monitor for macOS.<br>
+Featuring a native status bar widget and a gorgeous glassmorphic web control center.
+</p>
+
+<p align="center">
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Platform](https://img.shields.io/badge/platform-macOS-lightgrey.svg)
 ![Swift](https://img.shields.io/badge/Swift-5.0+-orange.svg)
 ![Python](https://img.shields.io/badge/Python-3.9+-yellow.svg)
+
+</p>
 
 ---
 
