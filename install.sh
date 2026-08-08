@@ -1,34 +1,50 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+INSTALL_DIR="$HOME/.aimeter/bin"
+PLIST_NAME="com.aimeter.app"
+PLIST_SRC="$SCRIPT_DIR/com.aimeter.app.plist"
+PLIST_DST="$HOME/Library/LaunchAgents/$PLIST_NAME.plist"
+
 echo "=== AIMeter Installer ==="
-echo "Compiling the native Menu Bar application on your machine..."
 
-# Verify swiftc is available
-if ! command -v swiftc &> /dev/null; then
-    echo "❌ Error: Swift compiler (swiftc) not found."
-    echo "Please ensure you have macOS Command Line Tools installed."
-    echo "You can install them by running: xcode-select --install"
-    exit 1
-fi
+# 1. Compile Swift binary
+echo "Compiling AIMeter for $(uname -m)..."
+swiftc -O -o "$SCRIPT_DIR/aimeter" "$SCRIPT_DIR/MenuBarApp.swift" \
+    -framework AppKit -framework Foundation
+echo "  Compiled successfully."
 
-# Compile the Swift application
-swiftc MenuBarApp.swift -o aimeter
-echo "✅ Compilation successful! Generated 'aimeter' executable."
+# 2. Create install directory and copy files
+echo "Installing to $INSTALL_DIR..."
+mkdir -p "$INSTALL_DIR"
+cp "$SCRIPT_DIR/aimeter" "$INSTALL_DIR/aimeter"
+cp "$SCRIPT_DIR/aimeter_daemon.py" "$INSTALL_DIR/aimeter_daemon.py"
+cp "$SCRIPT_DIR/aimeter_cli.py" "$INSTALL_DIR/aimeter_cli.py"
+cp "$SCRIPT_DIR/index.html" "$INSTALL_DIR/index.html"
+cp "$SCRIPT_DIR/index.css" "$INSTALL_DIR/index.css"
+cp "$SCRIPT_DIR/dashboard.js" "$INSTALL_DIR/dashboard.js"
 
+# 3. Install LaunchAgent
+echo "Installing LaunchAgent..."
+mkdir -p "$HOME/Library/LaunchAgents"
+mkdir -p "$HOME/.aimeter"
+sed -e "s|__AIMETER_BIN__|$INSTALL_DIR/aimeter|g" \
+    -e "s|__HOME__|$HOME|g" \
+    "$PLIST_SRC" > "$PLIST_DST"
+
+# Unload if already loaded, ignore errors
+launchctl bootout "gui/$(id -u)/$PLIST_NAME" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$PLIST_DST"
+echo "  LaunchAgent installed and started."
+
+# 4. Print next steps
 echo ""
-echo "=== Setup Instructions ==="
-echo "1. Run the app in the background:"
-echo "   ./aimeter &"
+echo "=== AIMeter installed! ==="
 echo ""
-echo "2. Add these environment variables to your shell profile (~/.zshrc or ~/.bashrc)"
-echo "   to track your API calls:"
-echo "   "
-echo "   export OPENAI_BASE_URL=\"http://127.0.0.1:5333/openai/v1\""
-echo "   export ANTHROPIC_BASE_URL=\"http://127.0.0.1:5333/anthropic\""
-echo "   "
-echo "3. For Claude Code CLI, no setup is needed. The app reads history logs automatically!"
+echo "  Menu bar icon should appear shortly."
+echo "  Dashboard: http://127.0.0.1:5333"
 echo ""
-echo "4. Open the Web Dashboard:"
-echo "   http://127.0.0.1:5333/"
-echo "=========================="
+echo "  Next: run 'aimeter setup' to configure your AI tools."
+echo "  (You may need to add $INSTALL_DIR to your PATH)"
+echo ""
