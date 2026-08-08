@@ -27,8 +27,9 @@ A real-time, pay-as-you-go AI API usage and cost monitor for macOS. Featuring a 
 ```bash
 brew tap smriti-memcore/aimeter
 brew install aimeter
-brew services start aimeter
-aimeter setup
+brew services start aimeter          # start the daemon (proxy + dashboard)
+aimeter setup                        # configure AI tools + install menu bar app
+launchctl load ~/Library/LaunchAgents/com.aimeter.app.plist  # start menu bar
 ```
 
 Dashboard: [http://127.0.0.1:5333](http://127.0.0.1:5333)
@@ -36,6 +37,7 @@ Dashboard: [http://127.0.0.1:5333](http://127.0.0.1:5333)
 To stop:
 
 ```bash
+launchctl unload ~/Library/LaunchAgents/com.aimeter.app.plist
 brew services stop aimeter
 aimeter setup --undo
 ```
@@ -44,6 +46,8 @@ To uninstall:
 
 ```bash
 aimeter setup --undo
+launchctl unload ~/Library/LaunchAgents/com.aimeter.app.plist
+rm ~/Library/LaunchAgents/com.aimeter.app.plist
 brew services stop aimeter
 brew uninstall aimeter
 brew untap smriti-memcore/aimeter
