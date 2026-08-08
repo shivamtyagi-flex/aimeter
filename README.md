@@ -17,6 +17,10 @@
   <img src="https://img.shields.io/badge/Python-3.9+-yellow?style=flat-square" alt="Python">
 </p>
 
+<p align="center">
+  <img src="assets/menubar_dropdown.jpg" width="400" alt="AIMeter macOS Status Bar Widget Preview">
+</p>
+
 ---
 
 **AIMeter** is a native macOS status bar widget and local API proxy designed to give developers total visibility into their AI API spend. It catches token metrics at the source with zero network overhead, keeping your credentials, prompts, and cost logs completely local.
