@@ -13,8 +13,28 @@ import threading
 import time
 from datetime import datetime, timedelta
 
-# Setup directories
-BASE_DIR = os.environ.get("AIMETER_DATA_DIR", os.path.expanduser("~/.aimeter"))
+# Setup directories — resolve the console user's home even when running as a service user
+def _resolve_data_dir():
+    env = os.environ.get("AIMETER_DATA_DIR")
+    if env:
+        return env
+    import subprocess
+    try:
+        console_user = subprocess.check_output(
+            ["/usr/bin/stat", "-f", "%Su", "/dev/console"],
+            text=True
+        ).strip()
+        if console_user and console_user != "root":
+            home = subprocess.check_output(
+                ["/usr/bin/dscl", ".", "-read", f"/Users/{console_user}", "NFSHomeDirectory"],
+                text=True
+            ).strip().split(": ", 1)[-1]
+            return os.path.join(home, ".aimeter")
+    except Exception:
+        pass
+    return os.path.expanduser("~/.aimeter")
+
+BASE_DIR = _resolve_data_dir()
 os.makedirs(BASE_DIR, exist_ok=True)
 DB_PATH = os.path.join(BASE_DIR, "usage.db")
 PRICE_MAP_PATH = os.path.join(BASE_DIR, "model_prices.json")
