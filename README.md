@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="assets/app_icon.png" alt="AIMeter Icon" width="128" height="128">
+  <img src="assets/app_icon.png" alt="AIMeter Icon" width="200" height="200">
 </p>
 
-<h1 align="center">🤖 AIMeter</h1>
+<h1 align="center">AIMeter</h1>
 
 <p align="center">
 A real-time, pay-as-you-go AI API usage and cost monitor for macOS.<br>
