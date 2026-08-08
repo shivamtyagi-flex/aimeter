@@ -29,7 +29,7 @@ brew tap smriti-memcore/aimeter
 brew install aimeter
 brew services start aimeter          # start the daemon (proxy + dashboard)
 aimeter setup                        # configure AI tools + install menu bar app
-launchctl load ~/Library/LaunchAgents/com.aimeter.app.plist  # start menu bar
+launchctl load ~/Library/LaunchAgents/com.aimeter.app.plist  # start menu bar (auto-starts on login after this)
 ```
 
 Dashboard: [http://127.0.0.1:5333](http://127.0.0.1:5333)
