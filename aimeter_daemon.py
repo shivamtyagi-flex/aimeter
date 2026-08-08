@@ -109,6 +109,14 @@ def init_db():
     )
     """)
     
+    # Claude watcher file positions to avoid double scanning
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS file_positions (
+        path TEXT PRIMARY KEY,
+        last_size INTEGER NOT NULL
+    )
+    """)
+    
     # Set default config
     cursor.execute("INSERT OR IGNORE INTO config (key, value) VALUES ('daily_budget', '5.00')")
     cursor.execute("INSERT OR IGNORE INTO config (key, value) VALUES ('port', '5333')")
@@ -117,14 +125,16 @@ def init_db():
     conn.close()
     print(f"Database initialized at {DB_PATH}")
 
-def log_usage(provider, model, input_tokens, output_tokens, cost, source, request_id):
+def log_usage(provider, model, input_tokens, output_tokens, cost, source, request_id, timestamp=None):
     conn = get_db()
     cursor = conn.cursor()
+    if not timestamp:
+        timestamp = datetime.now().isoformat()
     try:
         cursor.execute("""
         INSERT INTO usage_logs (timestamp, provider, model, input_tokens, output_tokens, cost, source, request_id)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (datetime.now().isoformat(), provider, model, input_tokens, output_tokens, cost, source, request_id))
+        """, (timestamp, provider, model, input_tokens, output_tokens, cost, source, request_id))
         conn.commit()
         print(f"[{source}] Logged request {request_id}: {model} ({input_tokens} -> {output_tokens}) Cost: ${cost:.6f}")
     except sqlite3.IntegrityError:
@@ -234,6 +244,18 @@ class ClaudeLogWatcher:
             
         print(f"Watching Claude Code projects directory: {claude_dir}")
         
+        # Load file positions from DB to avoid double-processing historical logs across restarts
+        conn = get_db()
+        cursor = conn.cursor()
+        try:
+            cursor.execute("SELECT path, last_size FROM file_positions")
+            self.file_positions = {row["path"]: row["last_size"] for row in cursor.fetchall()}
+        except Exception as db_err:
+            print(f"Failed to load file positions from DB: {db_err}")
+            self.file_positions = {}
+        finally:
+            conn.close()
+        
         while self.running:
             try:
                 if os.path.exists(claude_dir):
@@ -266,6 +288,17 @@ class ClaudeLogWatcher:
                     new_lines = f.readlines()
                     self.file_positions[path] = f.tell()
                     
+                    # Update file positions in DB
+                    conn = get_db()
+                    cursor = conn.cursor()
+                    try:
+                        cursor.execute("INSERT OR REPLACE INTO file_positions (path, last_size) VALUES (?, ?)", (path, self.file_positions[path]))
+                        conn.commit()
+                    except Exception as db_write_err:
+                        print(f"Failed to save file positions to DB: {db_write_err}")
+                    finally:
+                        conn.close()
+                    
                     for idx, line in enumerate(new_lines):
                         if not line.strip():
                             continue
@@ -291,6 +324,9 @@ class ClaudeLogWatcher:
                 usage = msg.get("usage")
                 
         if usage and isinstance(usage, dict):
+            # Extract timestamp from JSON if available to preserve history
+            timestamp = data.get("timestamp")
+            
             # Extract tokens
             input_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or usage.get("promptTokenCount", 0)
             output_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or usage.get("candidatesTokenCount", 0)
@@ -312,7 +348,8 @@ class ClaudeLogWatcher:
                 output_tokens=output_tokens,
                 cost=cost,
                 source="Claude Code",
-                request_id=request_id
+                request_id=request_id,
+                timestamp=timestamp
             )
 
 # --- Reverse Proxy and Web Server ---
