@@ -17,18 +17,6 @@ class Aimeter < Formula
     bin.install_symlink libexec/"aimeter"
   end
 
-  def post_install
-    plist_src = libexec/"com.aimeter.app.plist"
-    plist_dst = Dir.home + "/Library/LaunchAgents/com.aimeter.app.plist"
-
-    if File.exist?(plist_src) && !File.exist?(plist_dst)
-      content = File.read(plist_src)
-      content = content.gsub("__AIMETER_BIN__", (opt_libexec/"aimeter").to_s)
-      content = content.gsub("__HOME__", Dir.home)
-      File.write(plist_dst, content)
-    end
-  end
-
   service do
     run ["python3", opt_libexec/"aimeter_daemon.py"]
     keep_alive crashed: true
@@ -43,21 +31,13 @@ class Aimeter < Formula
       Start the daemon (API proxy + dashboard):
         brew services start aimeter
 
-      Start the menu bar app (runs in your GUI session):
-        launchctl load ~/Library/LaunchAgents/com.aimeter.app.plist
-
-      Or launch manually:
-        aimeter &
-
-      Configure your AI tools:
+      Configure AI tools and install menu bar app:
         aimeter setup
 
       Dashboard: http://127.0.0.1:5333
 
       To uninstall cleanly:
         aimeter setup --undo
-        launchctl unload ~/Library/LaunchAgents/com.aimeter.app.plist
-        rm ~/Library/LaunchAgents/com.aimeter.app.plist
         brew services stop aimeter
         brew uninstall aimeter
     EOS

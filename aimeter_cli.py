@@ -13,6 +13,9 @@ AIMETER_MARKER = "# Added by aimeter setup"
 
 STATE_DIR = Path.home() / ".aimeter"
 STATE_FILE = STATE_DIR / "setup_state.json"
+LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
+PLIST_NAME = "com.aimeter.app.plist"
+PLIST_DST = LAUNCH_AGENTS_DIR / PLIST_NAME
 
 
 def detect_tools():
@@ -149,6 +152,44 @@ def check_conflicts():
     return conflicts
 
 
+def install_launch_agent():
+    """Install the LaunchAgent plist for the menu bar app."""
+    exe_path = os.path.realpath(sys.argv[0])
+    cli_dir = Path(exe_path).parent
+    plist_src = cli_dir / PLIST_NAME
+
+    if not plist_src.exists():
+        plist_src = cli_dir.parent / PLIST_NAME
+    if not plist_src.exists():
+        return []
+
+    if PLIST_DST.exists():
+        return []
+
+    aimeter_bin = cli_dir / "aimeter"
+    if not aimeter_bin.exists():
+        aimeter_bin = Path(os.path.realpath(cli_dir / "aimeter"))
+
+    content = plist_src.read_text()
+    content = content.replace("__AIMETER_BIN__", str(aimeter_bin))
+    content = content.replace("__HOME__", str(Path.home()))
+
+    LAUNCH_AGENTS_DIR.mkdir(parents=True, exist_ok=True)
+    PLIST_DST.write_text(content)
+
+    os.system(f"launchctl load {PLIST_DST}")
+    return [f"Installed LaunchAgent: {PLIST_DST}"]
+
+
+def uninstall_launch_agent():
+    """Remove the LaunchAgent plist."""
+    if PLIST_DST.exists():
+        os.system(f"launchctl unload {PLIST_DST}")
+        PLIST_DST.unlink()
+        return [f"Removed LaunchAgent: {PLIST_DST}"]
+    return []
+
+
 def read_setup_state(path=None):
     """Read the setup state file. Returns a dict."""
     state_path = Path(path) if path else STATE_FILE
@@ -233,6 +274,9 @@ def run_setup(force=False):
                 "changes": changes,
             })
 
+    la_changes = install_launch_agent()
+    all_changes.extend(la_changes)
+
     if all_changes:
         write_setup_state(state)
         print("\nChanges applied:")
@@ -288,6 +332,10 @@ def run_undo():
                     print(f"Reverted {config_path}")
                 except (json.JSONDecodeError, ValueError):
                     print(f"Warning: could not parse {config_path}")
+
+    la_changes = uninstall_launch_agent()
+    for c in la_changes:
+        print(f"  {c}")
 
     # Clear state
     state["configured"] = []
