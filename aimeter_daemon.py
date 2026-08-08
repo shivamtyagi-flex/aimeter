@@ -14,7 +14,7 @@ import time
 from datetime import datetime, timedelta
 
 # Setup directories
-BASE_DIR = os.path.expanduser("~/.aimeter")
+BASE_DIR = os.environ.get("AIMETER_DATA_DIR", os.path.expanduser("~/.aimeter"))
 os.makedirs(BASE_DIR, exist_ok=True)
 DB_PATH = os.path.join(BASE_DIR, "usage.db")
 PRICE_MAP_PATH = os.path.join(BASE_DIR, "model_prices.json")
