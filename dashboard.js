@@ -20,6 +20,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const settingsDrawer = document.getElementById('settingsDrawer');
     const toggleSettingsBtn = document.getElementById('toggleSettingsBtn');
     const closeSettingsBtn = document.getElementById('closeSettingsBtn');
+    const themeToggleBtn = document.getElementById('themeToggleBtn');
     
     // UI Elements - Trend Sparkline
     const trendPath = document.getElementById('trendPath');
@@ -59,6 +60,24 @@ document.addEventListener('DOMContentLoaded', () => {
         'OpenRouter': { color: 'var(--color-openrouter)', glow: 'rgba(245, 158, 11, 0.25)', icon: '🟡' },
         'Claude Code': { color: 'var(--color-claudecode)', glow: 'rgba(236, 72, 153, 0.25)', icon: '🔴' }
     };
+
+    // --- Light/Dark Theme Controller ---
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    if (savedTheme === 'light') {
+        document.body.classList.add('light-theme');
+        if (themeToggleBtn) themeToggleBtn.textContent = '☀️';
+    } else {
+        if (themeToggleBtn) themeToggleBtn.textContent = '🌙';
+    }
+    
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', () => {
+            document.body.classList.toggle('light-theme');
+            const isLight = document.body.classList.contains('light-theme');
+            localStorage.setItem('theme', isLight ? 'light' : 'dark');
+            themeToggleBtn.textContent = isLight ? '☀️' : '🌙';
+        });
+    }
 
     // --- Control Drawer Handlers ---
     
