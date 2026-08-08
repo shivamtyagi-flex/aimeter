@@ -891,8 +891,9 @@ body {
     font-weight: 600;
 }
 
-.input-glow-group input {
-    padding-left: 1.85rem;
+.input-glow-group input[type="number"],
+.input-glow-group input[type="text"] {
+    padding-left: 2rem !important;
 }
 
 input[type="number"], input[type="text"] {
