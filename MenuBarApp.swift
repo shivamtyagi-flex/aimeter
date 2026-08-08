@@ -347,10 +347,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 // Check for CLI subcommands before starting GUI
 let cliArgs = CommandLine.arguments
 if cliArgs.count > 1 && cliArgs[1] == "setup" {
-    let exeURL = URL(fileURLWithPath: cliArgs[0])
-    let resolvedExe = exeURL.resolvingSymlinksInPath()
+    let exePath = ProcessInfo.processInfo.arguments[0]
+    let resolvedExe = URL(fileURLWithPath: exePath).resolvingSymlinksInPath()
     let exeDir = resolvedExe.deletingLastPathComponent()
-    let cliPath = exeDir.appendingPathComponent("aimeter_cli.py").path
+    var cliPath = exeDir.appendingPathComponent("aimeter_cli.py").path
+
+    if !FileManager.default.fileExists(atPath: cliPath) {
+        // Try resolving via which
+        let whichProc = Process()
+        let whichPipe = Pipe()
+        whichProc.executableURL = URL(fileURLWithPath: "/usr/bin/which")
+        whichProc.arguments = ["aimeter"]
+        whichProc.standardOutput = whichPipe
+        try? whichProc.run()
+        whichProc.waitUntilExit()
+        let whichOutput = String(data: whichPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        if !whichOutput.isEmpty {
+            let resolved = URL(fileURLWithPath: whichOutput).resolvingSymlinksInPath()
+            let resolvedDir = resolved.deletingLastPathComponent()
+            let candidate = resolvedDir.appendingPathComponent("aimeter_cli.py").path
+            if FileManager.default.fileExists(atPath: candidate) {
+                cliPath = candidate
+            }
+        }
+    }
 
     if FileManager.default.fileExists(atPath: cliPath) {
         let pythonArgs = ["python3", cliPath] + Array(cliArgs.dropFirst(1))
@@ -359,14 +379,6 @@ if cliArgs.count > 1 && cliArgs[1] == "setup" {
         perror("execvp failed")
         exit(1)
     } else {
-        let fallbackPath = FileManager.default.currentDirectoryPath + "/aimeter_cli.py"
-        if FileManager.default.fileExists(atPath: fallbackPath) {
-            let pythonArgs = ["python3", fallbackPath] + Array(cliArgs.dropFirst(1))
-            let cStrings = pythonArgs.map { strdup($0) } + [nil]
-            execvp("python3", cStrings)
-            perror("execvp failed")
-            exit(1)
-        }
         print("Error: aimeter_cli.py not found at \(cliPath)")
         exit(1)
     }
