@@ -3,7 +3,7 @@ class Aimeter < Formula
   homepage "https://github.com/smriti-memcore/aimeter"
   # URL and sha256 updated after each release by the release workflow
   url "https://github.com/smriti-memcore/aimeter/releases/download/v0.1.2/aimeter-v0.1.2.tar.gz"
-  sha256 "UPDATE_AFTER_RELEASE"
+  sha256 "5d47adf114ad17a4db47123c62996adde66d13b59650b9041e01724e3ae948cf"
   license "MIT"
 
   depends_on :macos
