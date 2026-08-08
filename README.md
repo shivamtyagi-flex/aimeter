@@ -22,7 +22,20 @@ A real-time, pay-as-you-go AI API usage and cost monitor for macOS. Featuring a 
 
 ---
 
-## Getting Started & Installation
+## Quick Start (Homebrew)
+
+```bash
+brew tap smriti-memcore/aimeter
+brew install aimeter
+brew services start aimeter
+aimeter setup
+```
+
+Dashboard: [http://127.0.0.1:5333](http://127.0.0.1:5333)
+
+---
+
+## Manual Installation
 
 ### 1. Prerequisites
 Ensure you have the macOS Command Line Tools (for `swiftc` compiler) installed:
