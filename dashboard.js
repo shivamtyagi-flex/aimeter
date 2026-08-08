@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // UI Elements - Forms & Tables (Drawer)
     const configForm = document.getElementById('configForm');
     const dailyBudgetInput = document.getElementById('dailyBudgetInput');
+    const menuBarPeriodSelect = document.getElementById('menuBarPeriodSelect');
     const overrideForm = document.getElementById('overrideForm');
     const overrideModel = document.getElementById('overrideModel');
     const overrideInputRate = document.getElementById('overrideInputRate');
@@ -356,6 +357,9 @@ document.addEventListener('DOMContentLoaded', () => {
             
             // Fill budget input
             dailyBudgetInput.value = data.config?.daily_budget || '5.00';
+            if (menuBarPeriodSelect) {
+                menuBarPeriodSelect.value = data.config?.menu_bar_period || 'day';
+            }
             
             // Fill overrides table
             overridesList.innerHTML = '';
@@ -404,13 +408,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const res = await fetch(`${API_BASE}/api/config`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ daily_budget: value.toFixed(2) })
+                body: JSON.stringify({ 
+                    daily_budget: value.toFixed(2),
+                    menu_bar_period: menuBarPeriodSelect ? menuBarPeriodSelect.value : 'day'
+                })
             });
             if (res.ok) {
-                alert('Daily budget limit saved successfully!');
+                alert('Settings saved successfully!');
                 updateDashboard();
             } else {
-                alert('Error saving budget config.');
+                alert('Error saving settings config.');
             }
         } catch (error) {
             console.error('Failed to save budget:', error);

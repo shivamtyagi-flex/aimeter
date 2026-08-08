@@ -302,15 +302,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let budgetString = config["daily_budget"] as? String ?? "5.00"
         let budget = Double(budgetString) ?? 5.0
         
+        // Determine what to display in status bar based on daemon configuration
+        var displayCost = todayCost
+        var displaySuffix = ""
+        var targetBudget = budget
+        
+        if let menuBar = json["menu_bar"] as? [String: Any],
+           let mbCost = menuBar["cost"] as? Double,
+           let period = menuBar["period"] as? String {
+            displayCost = mbCost
+            if period == "month" {
+                displaySuffix = " (M)"
+                targetBudget = budget * 30
+            } else if period == "year" {
+                displaySuffix = " (Y)"
+                targetBudget = budget * 365
+            }
+        }
+        
         if let button = statusItem.button {
-            button.title = String(format: "$%.2f", todayCost)
+            button.title = String(format: "$%.2f%@", displayCost, displaySuffix)
             button.imagePosition = .imageLeft
             
             let symbolName: String
 
-            if todayCost >= budget {
+            if displayCost >= targetBudget {
                 symbolName = "exclamationmark.triangle.fill"
-            } else if todayCost >= budget * 0.8 {
+            } else if displayCost >= targetBudget * 0.8 {
                 symbolName = "cpu.fill"
             } else {
                 symbolName = "cpu"

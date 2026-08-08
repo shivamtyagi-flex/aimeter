@@ -913,6 +913,26 @@ input[type="number"]:focus, input[type="text"]:focus {
     box-shadow: 0 0 12px var(--color-primary-glow);
 }
 
+.form-select {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.4) !important;
+    border: 1px solid var(--card-border);
+    color: var(--text-main);
+    border-radius: 12px;
+    padding: 0.65rem 0.85rem;
+    font-family: var(--font-body);
+    font-size: 0.88rem;
+    outline: none;
+    transition: var(--transition-premium);
+    cursor: pointer;
+}
+
+.form-select:focus {
+    outline: none;
+    border-color: var(--color-primary);
+    box-shadow: 0 0 12px var(--color-primary-glow);
+}
+
 .override-drawer-form {
     display: flex;
     flex-direction: column;

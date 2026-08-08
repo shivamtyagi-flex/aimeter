@@ -461,6 +461,19 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
         cursor.execute("SELECT key, value FROM config")
         config = {r["key"]: r["value"] for r in cursor.fetchall()}
         
+        # Calculate menu bar cost based on menu_bar_period config
+        menu_bar_period = config.get("menu_bar_period", "day")
+        if menu_bar_period == "month":
+            menu_bar_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        elif menu_bar_period == "year":
+            menu_bar_start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        else:
+            menu_bar_start = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+            
+        cursor.execute("SELECT SUM(cost) as total FROM usage_logs WHERE timestamp >= ?", (menu_bar_start,))
+        row = cursor.fetchone()
+        menu_bar_cost = row["total"] if row and row["total"] is not None else 0.0
+        
         conn.close()
         
         response_data = {
@@ -468,6 +481,10 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
                 "cost": today_cost,
                 "input_tokens": today_input,
                 "output_tokens": today_output
+            },
+            "menu_bar": {
+                "cost": menu_bar_cost,
+                "period": menu_bar_period
             },
             "providers": providers,
             "models": models,
@@ -510,6 +527,9 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
         
         if "daily_budget" in data:
             cursor.execute("INSERT OR REPLACE INTO config (key, value) VALUES ('daily_budget', ?)", (str(data["daily_budget"]),))
+            
+        if "menu_bar_period" in data:
+            cursor.execute("INSERT OR REPLACE INTO config (key, value) VALUES ('menu_bar_period', ?)", (str(data["menu_bar_period"]),))
             
         if "overrides" in data:
             for item in data["overrides"]:
