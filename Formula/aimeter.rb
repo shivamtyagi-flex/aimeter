@@ -22,7 +22,6 @@ class Aimeter < Formula
     keep_alive crashed: true
     log_path var/"log/aimeter.log"
     error_log_path var/"log/aimeter.log"
-    environment_variables AIMETER_DATA_DIR: "#{Dir.home}/.aimeter"
   end
 
   def caveats
