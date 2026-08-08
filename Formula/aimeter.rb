@@ -26,7 +26,13 @@ class Aimeter < Formula
 
   def caveats
     <<~EOS
-      AIMeter is installed! To start on login:
+      AIMeter is installed!
+
+      ⚠️ Gatekeeper Note: Since the binary is pre-compiled, macOS may quarantine it.
+      If you get a verification/developer error, trust the binary by running:
+        xattr -d com.apple.quarantine $(brew --prefix)/opt/aimeter/libexec/aimeter
+
+      To start the background service on login:
         brew services start aimeter
 
       Then configure your AI tools:
