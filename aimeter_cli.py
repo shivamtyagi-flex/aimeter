@@ -164,6 +164,10 @@ def install_launch_agent():
         return []
 
     if PLIST_DST.exists():
+        result = os.popen("launchctl list | grep com.aimeter.app").read().strip()
+        if not result:
+            os.system(f"launchctl load {PLIST_DST}")
+            return [f"Loaded LaunchAgent: {PLIST_DST}"]
         return []
 
     aimeter_bin = cli_dir / "aimeter"
