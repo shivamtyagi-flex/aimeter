@@ -14,14 +14,21 @@ class DaemonManager {
         print("Starting Python daemon...")
         let exeURL = URL(fileURLWithPath: CommandLine.arguments[0])
         let exeDir = exeURL.deletingLastPathComponent()
-        let scriptPath = exeDir.appendingPathComponent("aimeter_daemon.py").path
+        var scriptPath = exeDir.appendingPathComponent("aimeter_daemon.py").path
+        
+        if !FileManager.default.fileExists(atPath: scriptPath) {
+            let resourcesPath = exeDir.deletingLastPathComponent().appendingPathComponent("Resources/aimeter_daemon.py").path
+            if FileManager.default.fileExists(atPath: resourcesPath) {
+                scriptPath = resourcesPath
+            }
+        }
         
         if !FileManager.default.fileExists(atPath: scriptPath) {
             let fallbackPath = FileManager.default.currentDirectoryPath + "/aimeter_daemon.py"
             if FileManager.default.fileExists(atPath: fallbackPath) {
                 runProcess(scriptPath: fallbackPath)
             } else {
-                print("Could not find aimeter_daemon.py in executable dir or current working dir.")
+                print("Could not find aimeter_daemon.py in executable dir, resources dir, or fallback path.")
             }
         } else {
             runProcess(scriptPath: scriptPath)
@@ -184,6 +191,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         resetItem.target = self
         menu.addItem(resetItem)
         
+        let setupItem = NSMenuItem(title: "Configure Shell & IDEs...", action: #selector(runSetupWizard), keyEquivalent: "")
+        setupItem.target = self
+        menu.addItem(setupItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         let quitItem = NSMenuItem(title: "Quit AI Cost Tracker", action: #selector(quitApp), keyEquivalent: "q")
@@ -196,6 +207,28 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     @objc func openDashboard() {
         if let url = URL(string: "http://127.0.0.1:5333/") {
             NSWorkspace.shared.open(url)
+        }
+    }
+    
+    @objc func runSetupWizard() {
+        let exeURL = URL(fileURLWithPath: CommandLine.arguments[0])
+        let exeDir = exeURL.deletingLastPathComponent()
+        var cliPath = exeDir.appendingPathComponent("aimeter_cli.py").path
+        
+        if !FileManager.default.fileExists(atPath: cliPath) {
+            let resourcesPath = exeDir.deletingLastPathComponent().appendingPathComponent("Resources/aimeter_cli.py").path
+            if FileManager.default.fileExists(atPath: resourcesPath) {
+                cliPath = resourcesPath
+            }
+        }
+        
+        let script = "tell application \"Terminal\" to do script \"python3 \\\"\(cliPath)\\\" setup\""
+        if let appleScript = NSAppleScript(source: script) {
+            var error: NSDictionary?
+            appleScript.executeAndReturnError(&error)
+            if let err = error {
+                print("AppleScript execution error: \(err)")
+            }
         }
     }
     

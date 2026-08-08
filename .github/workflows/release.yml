@@ -33,12 +33,23 @@ jobs:
           tar czf "aimeter-${VERSION}.tar.gz" "aimeter-${VERSION}"
           shasum -a 256 "aimeter-${VERSION}.tar.gz" > "aimeter-${VERSION}.tar.gz.sha256"
 
+      - name: Build macOS App Bundle and DMG
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          # We need to compile local architecture, but release needs universal, so use build_app.sh and update executable to universal
+          chmod +x build_app.sh
+          ./build_app.sh
+          cp aimeter AIMeter.app/Contents/MacOS/aimeter
+          sed -i '' "s|<string>0.2.2</string>|<string>${VERSION}</string>|" AIMeter.app/Contents/Info.plist
+          hdiutil create -volname "AIMeter" -srcfolder AIMeter.app -ov -format UDZO "AIMeter.dmg"
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
             aimeter-*.tar.gz
             aimeter-*.tar.gz.sha256
+            AIMeter.dmg
           generate_release_notes: true
 
       - name: Update Homebrew formula
