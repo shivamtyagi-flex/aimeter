@@ -33,6 +33,22 @@ aimeter setup
 
 Dashboard: [http://127.0.0.1:5333](http://127.0.0.1:5333)
 
+To stop:
+
+```bash
+brew services stop aimeter
+aimeter setup --undo
+```
+
+To uninstall:
+
+```bash
+aimeter setup --undo
+brew services stop aimeter
+brew uninstall aimeter
+brew untap smriti-memcore/aimeter
+```
+
 ---
 
 ## Manual Installation
