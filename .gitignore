@@ -13,3 +13,6 @@ Thumbs.db
 # Build artifacts
 aimeter-arm64
 aimeter-x86_64
+
+AIMeter.app/
+AIMeter.dmg
