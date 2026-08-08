@@ -195,6 +195,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupItem.target = self
         menu.addItem(setupItem)
         
+        let securityItem = NSMenuItem(title: "Security & Privacy Info...", action: #selector(showSecurityInfo), keyEquivalent: "")
+        securityItem.target = self
+        menu.addItem(securityItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         let quitItem = NSMenuItem(title: "Quit AI Cost Tracker", action: #selector(quitApp), keyEquivalent: "q")
@@ -230,6 +234,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 print("AppleScript execution error: \(err)")
             }
         }
+    }
+    
+    @objc func showSecurityInfo() {
+        let alert = NSAlert()
+        alert.messageText = "Security & Privacy Guarantees"
+        alert.informativeText = """
+        🔒 100% Local-First:
+        All token counts, spent limits, and logs reside in your local folder (~/.ai_usage_tracker). There are no cloud servers, remote databases, or telemetry analytics.
+        
+        🔑 Key Safety:
+        Your provider API keys are passed directly and transparently. AIMeter never intercepts, saves, or stores your keys on disk.
+        
+        📝 Payload Privacy:
+        Only token count metrics and model names are recorded. Your prompts, source code, and completion texts are never captured or logged.
+        """
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: "Close")
+        alert.runModal()
     }
     
     @objc func forceSyncLogs() {
@@ -373,9 +395,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             button.contentTintColor = nil
         }
+        var periodLabel = "Today"
+        var budgetPeriod = "Daily"
+        if let menuBar = json["menu_bar"] as? [String: Any],
+           let period = menuBar["period"] as? String {
+            if period == "month" {
+                periodLabel = "This Month"
+                budgetPeriod = "Monthly"
+            } else if period == "year" {
+                periodLabel = "This Year"
+                budgetPeriod = "Yearly"
+            }
+        }
         
-        spendLabel.stringValue = String(format: "AI Spend Today: $%.2f", todayCost)
-        budgetLabel.stringValue = String(format: "Daily Budget: $%.2f", budget)
+        spendLabel.stringValue = String(format: "AI Spend %@: $%.2f", periodLabel, displayCost)
+        budgetLabel.stringValue = String(format: "%@ Budget: $%.2f", budgetPeriod, targetBudget)
         
         if let anthropic = providers["Anthropic"] as? [String: Any], let cost = anthropic["cost"] as? Double {
             anthropicLabel.stringValue = String(format: "  Anthropic: $%.3f", cost)
