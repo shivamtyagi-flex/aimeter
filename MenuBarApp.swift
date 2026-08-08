@@ -348,7 +348,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 let cliArgs = CommandLine.arguments
 if cliArgs.count > 1 && cliArgs[1] == "setup" {
     let exeURL = URL(fileURLWithPath: cliArgs[0])
-    let exeDir = exeURL.deletingLastPathComponent()
+    let resolvedExe = exeURL.resolvingSymlinksInPath()
+    let exeDir = resolvedExe.deletingLastPathComponent()
     let cliPath = exeDir.appendingPathComponent("aimeter_cli.py").path
 
     if FileManager.default.fileExists(atPath: cliPath) {
