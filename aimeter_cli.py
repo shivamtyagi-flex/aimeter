@@ -170,9 +170,11 @@ def install_launch_agent():
             return [f"Loaded LaunchAgent: {PLIST_DST}"]
         return []
 
-    aimeter_bin = cli_dir / "aimeter"
-    if not aimeter_bin.exists():
-        aimeter_bin = Path(os.path.realpath(cli_dir / "aimeter"))
+    opt_path = Path("/opt/homebrew/opt/aimeter/libexec/aimeter")
+    if opt_path.exists():
+        aimeter_bin = opt_path
+    else:
+        aimeter_bin = cli_dir / "aimeter"
 
     content = plist_src.read_text()
     content = content.replace("__AIMETER_BIN__", str(aimeter_bin))
