@@ -9,3 +9,7 @@ __pycache__/
 # OS Metadata
 .DS_Store
 Thumbs.db
+
+# Build artifacts
+aimeter-arm64
+aimeter-x86_64

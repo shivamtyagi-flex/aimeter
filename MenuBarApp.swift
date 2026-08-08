@@ -307,24 +307,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             button.imagePosition = .imageLeft
             
             let symbolName: String
-            let tintColor: NSColor?
-            
+
             if todayCost >= budget {
                 symbolName = "exclamationmark.triangle.fill"
-                tintColor = NSColor.systemRed
             } else if todayCost >= budget * 0.8 {
                 symbolName = "cpu.fill"
-                tintColor = NSColor.systemOrange
             } else {
                 symbolName = "cpu"
-                tintColor = nil // Nil allows macOS to automatically adapt text and icon (white in dark mode, black in light mode)
             }
-            
+
             if let img = NSImage(systemSymbolName: symbolName, accessibilityDescription: symbolName) {
                 img.isTemplate = true
                 button.image = img
             }
-            button.contentTintColor = tintColor
+            button.contentTintColor = nil
         }
         
         spendLabel.stringValue = String(format: "AI Spend Today: $%.2f", todayCost)
@@ -345,6 +341,33 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if let openrouter = providers["OpenRouter"] as? [String: Any], let cost = openrouter["cost"] as? Double {
             openrouterLabel.stringValue = String(format: "  OpenRouter: $%.3f", cost)
         }
+    }
+}
+
+// Check for CLI subcommands before starting GUI
+let cliArgs = CommandLine.arguments
+if cliArgs.count > 1 && cliArgs[1] == "setup" {
+    let exeURL = URL(fileURLWithPath: cliArgs[0])
+    let exeDir = exeURL.deletingLastPathComponent()
+    let cliPath = exeDir.appendingPathComponent("aimeter_cli.py").path
+
+    if FileManager.default.fileExists(atPath: cliPath) {
+        let pythonArgs = ["python3", cliPath] + Array(cliArgs.dropFirst(1))
+        let cStrings = pythonArgs.map { strdup($0) } + [nil]
+        execvp("python3", cStrings)
+        perror("execvp failed")
+        exit(1)
+    } else {
+        let fallbackPath = FileManager.default.currentDirectoryPath + "/aimeter_cli.py"
+        if FileManager.default.fileExists(atPath: fallbackPath) {
+            let pythonArgs = ["python3", fallbackPath] + Array(cliArgs.dropFirst(1))
+            let cStrings = pythonArgs.map { strdup($0) } + [nil]
+            execvp("python3", cStrings)
+            perror("execvp failed")
+            exit(1)
+        }
+        print("Error: aimeter_cli.py not found at \(cliPath)")
+        exit(1)
     }
 }
 

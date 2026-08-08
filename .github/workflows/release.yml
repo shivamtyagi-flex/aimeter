@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build universal binary
+        run: |
+          swiftc -O -o aimeter-arm64 -target arm64-apple-macosx12.0 MenuBarApp.swift \
+              -framework AppKit -framework Foundation
+          swiftc -O -o aimeter-x86_64 -target x86_64-apple-macosx12.0 MenuBarApp.swift \
+              -framework AppKit -framework Foundation
+          lipo -create -output aimeter aimeter-arm64 aimeter-x86_64
+          file aimeter
+
+      - name: Create release tarball
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/}"
+          mkdir -p "aimeter-${VERSION}"
+          cp aimeter aimeter_daemon.py aimeter_cli.py \
+             index.html index.css dashboard.js \
+             com.aimeter.app.plist install.sh \
+             "aimeter-${VERSION}/"
+          tar czf "aimeter-${VERSION}.tar.gz" "aimeter-${VERSION}"
+          shasum -a 256 "aimeter-${VERSION}.tar.gz" > "aimeter-${VERSION}.tar.gz.sha256"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            aimeter-*.tar.gz
+            aimeter-*.tar.gz.sha256
+          generate_release_notes: true
