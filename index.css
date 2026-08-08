@@ -172,6 +172,43 @@ body {
     font-weight: 600;
 }
 
+/* Timeframe Selector Capsule */
+.timeframe-selector {
+    display: inline-flex;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--card-border);
+    padding: 0.25rem;
+    border-radius: 20px;
+    gap: 0.15rem;
+    backdrop-filter: blur(8px);
+    margin-right: 0.75rem;
+}
+
+.timeframe-btn {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--text-muted);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.35rem 0.9rem;
+    border-radius: 16px;
+    cursor: pointer;
+    transition: var(--transition-premium);
+}
+
+.timeframe-btn:hover {
+    color: var(--text-main);
+    background: rgba(255, 255, 255, 0.03);
+}
+
+.timeframe-btn.active {
+    color: #ffffff;
+    background: var(--color-primary);
+    box-shadow: 0 2px 10px var(--color-primary-glow);
+}
+
 /* Premium Card Architecture */
 .card {
     background: var(--card-fill);

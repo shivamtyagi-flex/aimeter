@@ -31,6 +31,11 @@
                 </div>
             </div>
             <div class="header-actions">
+                <div class="timeframe-selector">
+                    <button id="timeframe-day" class="timeframe-btn active">Daily</button>
+                    <button id="timeframe-month" class="timeframe-btn">Monthly</button>
+                    <button id="timeframe-year" class="timeframe-btn">Yearly</button>
+                </div>
                 <button id="toggleSettingsBtn" class="btn btn-glass-primary">⚙️ Control Center</button>
             </div>
         </header>
@@ -47,12 +52,12 @@
                             <circle id="progressCircle" class="track-progress" cx="50" cy="50" r="42"></circle>
                         </svg>
                         <div class="dial-content">
-                            <span class="currency-tag">Spent Today</span>
+                            <span id="spendPeriodLabel" class="currency-tag">Spent Today</span>
                             <div class="readout-wrapper">
                                 <span class="neon-dollar">$</span>
                                 <h2 id="todayCost" class="glowing-text">0.00</h2>
                             </div>
-                            <span class="budget-limit">of $<span id="dailyBudgetLabel">5.00</span> limit</span>
+                            <span class="budget-limit">of $<span id="budgetLimitLabel">5.00</span> <span id="budgetPeriodLabel">daily</span> limit</span>
                         </div>
                     </div>
                 </div>
@@ -78,8 +83,8 @@
                 <!-- 7-Day Trend Sparkline -->
                 <div class="card card-sparkline">
                     <div class="sparkline-header">
-                        <h3>Weekly Trend</h3>
-                        <span id="weeklyAverage" class="sparkline-subtext">$0.00 avg / day</span>
+                        <h3 id="trendTitle">Weekly Trend</h3>
+                        <span id="trendAverage" class="sparkline-subtext">$0.00 avg / day</span>
                     </div>
                     <div class="sparkline-container">
                         <svg id="trendSvg" viewBox="0 0 300 100" preserveAspectRatio="none">

@@ -4,9 +4,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // API host (supports both direct server running and file:/// direct double-click)
     const API_BASE = window.location.protocol === 'file:' ? 'http://127.0.0.1:5333' : '';
     
+    // Timeframe State
+    let activeRange = 'day';
+
     // UI Elements - Core Metrics
     const todayCostText = document.getElementById('todayCost');
-    const dailyBudgetLabel = document.getElementById('dailyBudgetLabel');
+    const budgetLimitLabel = document.getElementById('budgetLimitLabel');
     const progressCircle = document.getElementById('progressCircle');
     const totalInputTokensText = document.getElementById('totalInputTokens');
     const totalOutputTokensText = document.getElementById('totalOutputTokens');
@@ -22,7 +25,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const trendPath = document.getElementById('trendPath');
     const trendArea = document.getElementById('trendArea');
     const sparklineDays = document.getElementById('sparklineDays');
-    const weeklyAverageLabel = document.getElementById('weeklyAverage');
+    const trendAverageLabel = document.getElementById('trendAverage');
+
+    // UI Elements - Timeframe Selector
+    const tfDayBtn = document.getElementById('timeframe-day');
+    const tfMonthBtn = document.getElementById('timeframe-month');
+    const tfYearBtn = document.getElementById('timeframe-year');
     
     // UI Elements - Columns
     const providersList = document.getElementById('providersList');
@@ -93,18 +101,39 @@ document.addEventListener('DOMContentLoaded', () => {
     
     async function updateDashboard() {
         try {
-            const res = await fetch(`${API_BASE}/api/stats`);
+            const res = await fetch(`${API_BASE}/api/stats?range=${activeRange}`);
             if (!res.ok) throw new Error('API server returned error');
             const data = await res.json();
             
             const stats = data.today || { cost: 0.0, input_tokens: 0, output_tokens: 0 };
-            const budget = parseFloat(data.config?.daily_budget || '5.00');
+            const dailyBudget = parseFloat(data.config?.daily_budget || '5.00');
+            
+            let budget = dailyBudget;
+            if (activeRange === 'month') {
+                budget = dailyBudget * 30;
+            } else if (activeRange === 'year') {
+                budget = dailyBudget * 365;
+            }
             
             // 1. Text Metrics
             todayCostText.textContent = stats.cost.toFixed(2);
-            dailyBudgetLabel.textContent = budget.toFixed(2);
+            if (budgetLimitLabel) budgetLimitLabel.textContent = budget.toFixed(2);
             totalInputTokensText.textContent = stats.input_tokens.toLocaleString();
             totalOutputTokensText.textContent = stats.output_tokens.toLocaleString();
+            
+            // Update labels dynamically
+            const spendPeriodLabel = document.getElementById('spendPeriodLabel');
+            if (spendPeriodLabel) {
+                spendPeriodLabel.textContent = activeRange === 'day' ? 'Spent Today' : (activeRange === 'month' ? 'Spent This Month' : 'Spent This Year');
+            }
+            const budgetPeriodLabel = document.getElementById('budgetPeriodLabel');
+            if (budgetPeriodLabel) {
+                budgetPeriodLabel.textContent = activeRange === 'day' ? 'daily' : (activeRange === 'month' ? 'monthly' : 'yearly');
+            }
+            const trendTitle = document.getElementById('trendTitle');
+            if (trendTitle) {
+                trendTitle.textContent = activeRange === 'day' ? 'Weekly Trend' : (activeRange === 'month' ? 'Monthly Trend' : 'Yearly Trend');
+            }
             
             // 2. Radial Budget Gauge
             const circumference = 2 * Math.PI * 42; // r=42 -> 263.89
@@ -139,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 statusText.style.color = 'var(--text-muted)';
             }
 
-            // 3. Render 7-Day Sparkline Chart
+            // 3. Render Sparkline Chart
             renderSparkline(data.trend || []);
 
             // 4. Render Provider Distributions
@@ -198,18 +227,24 @@ document.addEventListener('DOMContentLoaded', () => {
         trendPath.setAttribute('d', lineD);
         trendArea.setAttribute('d', areaD);
         
-        // Update days label text
+        // Update days label text (filter to avoid cluttering in large lists)
         sparklineDays.innerHTML = '';
-        trend.forEach(t => {
+        trend.forEach((t, index) => {
             const span = document.createElement('span');
-            span.textContent = t.day;
+            if (trend.length <= 15 || index % 5 === 0 || index === trend.length - 1) {
+                span.textContent = t.day;
+            } else {
+                span.textContent = '';
+            }
             sparklineDays.appendChild(span);
         });
         
         // Calculate average spend
         const sum = trend.reduce((acc, t) => acc + t.cost, 0);
         const avg = sum / trend.length;
-        weeklyAverageLabel.textContent = `$${avg.toFixed(2)} avg / day`;
+        if (trendAverageLabel) {
+            trendAverageLabel.textContent = `$${avg.toFixed(2)} avg / ${activeRange === 'year' ? 'month' : 'day'}`;
+        }
     }
 
     // --- Render Providers Helper ---
@@ -477,8 +512,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
+    // --- Timeframe Listeners Setup ---
+    
+    function setupTimeframeListeners() {
+        if (!tfDayBtn || !tfMonthBtn || !tfYearBtn) return;
+        
+        const buttons = [
+            { btn: tfDayBtn, range: 'day' },
+            { btn: tfMonthBtn, range: 'month' },
+            { btn: tfYearBtn, range: 'year' }
+        ];
+        
+        buttons.forEach(({ btn, range }) => {
+            btn.addEventListener('click', () => {
+                buttons.forEach(b => b.btn.classList.remove('active'));
+                btn.classList.add('active');
+                activeRange = range;
+                updateDashboard();
+            });
+        });
+    }
+
     // --- Initialization and Polling ---
     
+    setupTimeframeListeners();
     updateDashboard();
     setInterval(updateDashboard, 3000);
 });

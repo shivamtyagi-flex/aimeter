@@ -340,7 +340,7 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
         path = parsed_url.path
         
         if path == "/api/stats":
-            self.handle_api_stats()
+            self.handle_api_stats(parsed_url)
         elif path == "/api/config":
             self.handle_api_config_get()
         elif path.startswith("/openai") or path.startswith("/anthropic") or path.startswith("/gemini") or path.startswith("/openrouter"):
@@ -369,13 +369,22 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
             
     # --- API Handlers ---
     
-    def handle_api_stats(self):
+    def handle_api_stats(self, parsed_url=None):
         conn = get_db()
         cursor = conn.cursor()
         
-        today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+        query_params = urllib.parse.parse_qs(parsed_url.query) if parsed_url else {}
+        time_range = query_params.get("range", ["day"])[0]
         
-        cursor.execute("SELECT SUM(cost) as total, SUM(input_tokens) as input, SUM(output_tokens) as output FROM usage_logs WHERE timestamp >= ?", (today_start,))
+        now = datetime.now()
+        if time_range == "month":
+            start_time = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        elif time_range == "year":
+            start_time = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0).isoformat()
+        else:
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+            
+        cursor.execute("SELECT SUM(cost) as total, SUM(input_tokens) as input, SUM(output_tokens) as output FROM usage_logs WHERE timestamp >= ?", (start_time,))
         summary = cursor.fetchone()
         today_cost = summary["total"] if summary["total"] is not None else 0.0
         today_input = summary["input"] if summary["input"] is not None else 0
@@ -384,7 +393,7 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
         cursor.execute("""
         SELECT provider, SUM(cost) as cost, SUM(input_tokens) as input, SUM(output_tokens) as output 
         FROM usage_logs WHERE timestamp >= ? GROUP BY provider
-        """, (today_start,))
+        """, (start_time,))
         providers = {r["provider"]: {"cost": r["cost"], "input": r["input"], "output": r["output"]} for r in cursor.fetchall()}
         
         for prov in ["Anthropic", "OpenAI", "Google Gemini", "Claude Code", "OpenRouter"]:
@@ -394,26 +403,60 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
         cursor.execute("""
         SELECT model, provider, SUM(cost) as cost, SUM(input_tokens) as input, SUM(output_tokens) as output 
         FROM usage_logs WHERE timestamp >= ? GROUP BY model ORDER BY cost DESC
-        """, (today_start,))
+        """, (start_time,))
         models = [dict(r) for r in cursor.fetchall()]
         
         cursor.execute("SELECT * FROM usage_logs ORDER BY timestamp DESC LIMIT 20")
         recent = [dict(r) for r in cursor.fetchall()]
         
-        # Calculate 7-day trend
+        # Calculate trend based on timeframe
         trend = []
-        now = datetime.now()
-        for i in range(6, -1, -1):
-            day = now - timedelta(days=i)
-            start_time = day.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
-            end_time = day.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
-            cursor.execute("SELECT SUM(cost) as total FROM usage_logs WHERE timestamp >= ? AND timestamp <= ?", (start_time, end_time))
-            row = cursor.fetchone()
-            cost_val = row["total"] if row and row["total"] is not None else 0.0
-            trend.append({
-                "day": day.strftime("%a"),
-                "cost": cost_val
-            })
+        if time_range == "month":
+            # 30-day daily trend
+            for i in range(29, -1, -1):
+                day = now - timedelta(days=i)
+                day_start = day.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+                day_end = day.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+                cursor.execute("SELECT SUM(cost) as total FROM usage_logs WHERE timestamp >= ? AND timestamp <= ?", (day_start, day_end))
+                row = cursor.fetchone()
+                cost_val = row["total"] if row and row["total"] is not None else 0.0
+                trend.append({
+                    "day": day.strftime("%d"),
+                    "cost": cost_val
+                })
+        elif time_range == "year":
+            # 12-month trend
+            for i in range(11, -1, -1):
+                year = now.year
+                month = now.month - i
+                while month <= 0:
+                    month += 12
+                    year -= 1
+                month_start = datetime(year, month, 1, 0, 0, 0, 0).isoformat()
+                if month == 12:
+                    month_end = datetime(year + 1, 1, 1, 0, 0, 0, 0) - timedelta(microseconds=1)
+                else:
+                    month_end = datetime(year, month + 1, 1, 0, 0, 0, 0) - timedelta(microseconds=1)
+                cursor.execute("SELECT SUM(cost) as total FROM usage_logs WHERE timestamp >= ? AND timestamp <= ?", (month_start, month_end.isoformat()))
+                row = cursor.fetchone()
+                cost_val = row["total"] if row and row["total"] is not None else 0.0
+                trend.append({
+                    "day": datetime(year, month, 1).strftime("%b"),
+                    "cost": cost_val
+                })
+        else:
+            # 7-day daily trend
+            for i in range(6, -1, -1):
+                day = now - timedelta(days=i)
+                day_start = day.replace(hour=0, minute=0, second=0, microsecond=0).isoformat()
+                day_end = day.replace(hour=23, minute=59, second=59, microsecond=999999).isoformat()
+                cursor.execute("SELECT SUM(cost) as total FROM usage_logs WHERE timestamp >= ? AND timestamp <= ?", (day_start, day_end))
+                row = cursor.fetchone()
+                cost_val = row["total"] if row and row["total"] is not None else 0.0
+                trend.append({
+                    "day": day.strftime("%a"),
+                    "cost": cost_val
+                })
             
         cursor.execute("SELECT key, value FROM config")
         config = {r["key"]: r["value"] for r in cursor.fetchall()}
