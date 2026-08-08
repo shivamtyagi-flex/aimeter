@@ -135,6 +135,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (trendTitle) {
                 trendTitle.textContent = activeRange === 'day' ? 'Weekly Trend' : (activeRange === 'month' ? 'Monthly Trend' : 'Yearly Trend');
             }
+            const timeframeRangeLabel = document.getElementById('timeframeRangeLabel');
+            if (timeframeRangeLabel) {
+                const now = new Date();
+                if (activeRange === 'day') {
+                    timeframeRangeLabel.textContent = now.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+                } else if (activeRange === 'month') {
+                    const firstOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+                    timeframeRangeLabel.textContent = `${firstOfMonth.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${now.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+                } else if (activeRange === 'year') {
+                    const firstOfYear = new Date(now.getFullYear(), 0, 1);
+                    timeframeRangeLabel.textContent = `${firstOfYear.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} – ${now.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}`;
+                }
+            }
             
             // 2. Radial Budget Gauge
             const circumference = 2 * Math.PI * 42; // r=42 -> 263.89
