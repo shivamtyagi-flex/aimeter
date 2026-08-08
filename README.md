@@ -20,63 +20,41 @@ A real-time, pay-as-you-go AI API usage and cost monitor for macOS. Featuring a 
     *   *Live Timeline Stream*: A vertical feed detailing relative timestamps, model tags, and token ratios.
     *   *Drawer Configs*: Slide-out panel for setting daily budget goals and custom model pricing overrides.
 
+## Installation
+
+### 🚀 Option 1: DMG Installer (Recommended)
+
+1. Head to the [Releases Page](https://github.com/smriti-memcore/aimeter/releases) and download the latest `AIMeter.dmg` file.
+2. Double-click to open the DMG, then drag **AIMeter.app** into your `/Applications` directory.
+3. Open **AIMeter** from your Applications folder. The CPU status icon will appear in your top macOS menu bar.
+4. Click the CPU menu bar icon and select **"Configure Shell & IDEs..."** to automatically open a terminal session and configure tracking across all local AI tools (Zsh, Cursor settings, etc.).
+
+*Note: On your very first run, macOS Gatekeeper may block launch. To bypass, simply right-click **AIMeter.app** in Finder and choose **Open**.*
+
 ---
 
-## Quick Start (Homebrew)
+### 🍺 Option 2: Homebrew
+
+If you prefer managing your tools via the command line:
 
 ```bash
 brew tap smriti-memcore/aimeter
 brew install aimeter
-brew services start aimeter          # start the daemon (proxy + dashboard)
-aimeter setup                        # configure AI tools + install menu bar app
-launchctl load ~/Library/LaunchAgents/com.aimeter.app.plist  # start menu bar (auto-starts on login after this)
+brew services start aimeter                        # Start the background proxy daemon
+aimeter setup                                      # Setup shell/Cursor config & load menu bar agent
 ```
 
-Dashboard: [http://127.0.0.1:5333](http://127.0.0.1:5333)
-
-To stop:
+#### Stopping and Uninstalling (Homebrew):
 
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.aimeter.app.plist
-brew services stop aimeter
+# To stop services and undo configurations:
 aimeter setup --undo
-```
-
-To uninstall:
-
-```bash
-aimeter setup --undo
-launchctl unload ~/Library/LaunchAgents/com.aimeter.app.plist
-rm ~/Library/LaunchAgents/com.aimeter.app.plist
 brew services stop aimeter
+
+# To uninstall cleanly:
 brew uninstall aimeter
 brew untap smriti-memcore/aimeter
 ```
-
----
-
-## Manual Installation
-
-### 1. Prerequisites
-Ensure you have the macOS Command Line Tools (for `swiftc` compiler) installed:
-```bash
-xcode-select --install
-```
-
-### 2. Build AIMeter
-Clone the repository and run the automated installer:
-```bash
-chmod +x install.sh
-./install.sh
-```
-*This compiles the Swift status bar app specifically for your processor (Intel or Apple Silicon).*
-
-### 3. Launch the App
-Run the compiled binary in the background:
-```bash
-./aimeter &
-```
-*The native status bar app will appear in your Mac's top menu bar (represented by a CPU chip icon).*
 
 ---
 
