@@ -313,6 +313,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     func performOneStepUpdate(downloadUrl: String) {
         let appPath = Bundle.main.bundlePath
         let isHomebrew = appPath.contains("/Cellar/") || appPath.contains("/opt/homebrew/")
+        let isDiskImage = appPath.contains("/Volumes/")
+        
+        if isDiskImage {
+            let alert = NSAlert()
+            alert.messageText = "Run from Applications"
+            alert.informativeText = "AIMeter is currently running from a Disk Image (.dmg). To enable one-click updates, please drag AIMeter.app to your /Applications folder, then launch it from there."
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: "OK")
+            alert.runModal()
+            return
+        }
         
         if isHomebrew {
             // Homebrew installation - run brew upgrade in Terminal
@@ -328,34 +339,44 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let shellScript = """
         (
           sleep 1
+          echo "=== Starting Update ==="
+          echo "App path: \(appPath)"
+          echo "Download URL: \(downloadUrl)"
+          
           # Clean temp mount point if exists
           rm -rf /tmp/aimeter_mount
           mkdir -p /tmp/aimeter_mount
           
           # Download DMG
+          echo "Downloading DMG..."
           curl -L -o /tmp/AIMeter_new.dmg "\(downloadUrl)"
           
           # Mount DMG
+          echo "Mounting DMG..."
           hdiutil attach -mountpoint /tmp/aimeter_mount -nobrowse -readonly /tmp/AIMeter_new.dmg
           
           # Replace running bundle
+          echo "Swapping app bundles..."
           mv "\(appPath)" "\(appPath).old"
           cp -R /tmp/aimeter_mount/AIMeter.app "\(appPath)"
           
           # Unmount and clean up
+          echo "Unmounting and cleaning up..."
           hdiutil detach /tmp/aimeter_mount
           rm -f /tmp/AIMeter_new.dmg
           rm -rf /tmp/aimeter_mount
           
           # Launch new app
+          echo "Launching updated app..."
           open "\(appPath)"
           
           # Delete backup app
           rm -rf "\(appPath).old"
           
           # Terminate this old app instance
+          echo "Terminating old instance..."
           kill \(ProcessInfo.processInfo.processIdentifier)
-        ) &
+        ) > /tmp/aimeter_update.log 2>&1 &
         """
         
         let process = Process()
