@@ -57,10 +57,15 @@ def check_for_updates():
                 data = json.loads(response.read().decode())
                 tag = data.get("tag_name", "").strip("v")
                 html_url = data.get("html_url", "")
+                dmg_url = html_url
+                for asset in data.get("assets", []):
+                    if asset.get("name") == "AIMeter.dmg":
+                        dmg_url = asset.get("browser_download_url", html_url)
+                        break
                 if tag:
                     LATEST_VERSION_INFO = {
                         "version": tag,
-                        "url": html_url
+                        "url": dmg_url
                     }
         except Exception as e:
             print(f"Check for updates failed: {e}")

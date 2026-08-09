@@ -199,6 +199,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         securityItem.target = self
         menu.addItem(securityItem)
         
+        let checkUpdatesItem = NSMenuItem(title: "Check for Updates...", action: #selector(checkForUpdatesManually), keyEquivalent: "")
+        checkUpdatesItem.target = self
+        menu.addItem(checkUpdatesItem)
+        
         menu.addItem(NSMenuItem.separator())
         
         let quitItem = NSMenuItem(title: "Quit AI Cost Tracker", action: #selector(quitApp), keyEquivalent: "q")
@@ -252,6 +256,120 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         alert.alertStyle = .informational
         alert.addButton(withTitle: "Close")
         alert.runModal()
+    }
+    
+    @objc func checkForUpdatesManually() {
+        let url = URL(string: "http://127.0.0.1:5333/api/stats")!
+        let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+            guard let self = self else { return }
+            
+            if error != nil {
+                DispatchQueue.main.async {
+                    let alert = NSAlert()
+                    alert.messageText = "Check for Updates"
+                    alert.informativeText = "Unable to connect to AIMeter daemon service. Please ensure the service is running."
+                    alert.alertStyle = .warning
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
+                return
+            }
+            
+            guard let data = data else { return }
+            do {
+                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    DispatchQueue.main.async {
+                        if let updateAvailable = json["update_available"] as? [String: Any],
+                           let ver = updateAvailable["version"] as? String,
+                           let urlStr = updateAvailable["url"] as? String {
+                            
+                            let alert = NSAlert()
+                            alert.messageText = "Update Available"
+                            alert.informativeText = "A new version of AIMeter is available (v\(ver)). Would you like to download and install it in one click?"
+                            alert.alertStyle = .informational
+                            alert.addButton(withTitle: "Update Now")
+                            alert.addButton(withTitle: "Cancel")
+                            
+                            if alert.runModal() == .alertFirstButtonReturn {
+                                self.performOneStepUpdate(downloadUrl: urlStr)
+                            }
+                        } else {
+                            let alert = NSAlert()
+                            alert.messageText = "Up to Date"
+                            alert.informativeText = "AIMeter is already at the latest version."
+                            alert.alertStyle = .informational
+                            alert.addButton(withTitle: "OK")
+                            alert.runModal()
+                        }
+                    }
+                }
+            } catch {
+                print("JSON parsing error: \(error)")
+            }
+        }
+        task.resume()
+    }
+    
+    func performOneStepUpdate(downloadUrl: String) {
+        let appPath = Bundle.main.bundlePath
+        let isHomebrew = appPath.contains("/Cellar/") || appPath.contains("/opt/homebrew/")
+        
+        if isHomebrew {
+            // Homebrew installation - run brew upgrade in Terminal
+            let script = "tell application \"Terminal\" to do script \"brew update && brew upgrade aimeter && brew services restart aimeter\""
+            if let appleScript = NSAppleScript(source: script) {
+                var error: NSDictionary?
+                appleScript.executeAndReturnError(&error)
+            }
+            return
+        }
+        
+        // Direct DMG/App execution - mount DMG, swap, and restart.
+        let shellScript = """
+        (
+          sleep 1
+          # Clean temp mount point if exists
+          rm -rf /tmp/aimeter_mount
+          mkdir -p /tmp/aimeter_mount
+          
+          # Download DMG
+          curl -L -o /tmp/AIMeter_new.dmg "\(downloadUrl)"
+          
+          # Mount DMG
+          hdiutil attach -mountpoint /tmp/aimeter_mount -nobrowse -readonly /tmp/AIMeter_new.dmg
+          
+          # Replace running bundle
+          mv "\(appPath)" "\(appPath).old"
+          cp -R /tmp/aimeter_mount/AIMeter.app "\(appPath)"
+          
+          # Unmount and clean up
+          hdiutil detach /tmp/aimeter_mount
+          rm -f /tmp/AIMeter_new.dmg
+          rm -rf /tmp/aimeter_mount
+          
+          # Launch new app
+          open "\(appPath)"
+          
+          # Delete backup app
+          rm -rf "\(appPath).old"
+          
+          # Terminate this old app instance
+          kill \(ProcessInfo.processInfo.processIdentifier)
+        ) &
+        """
+        
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/bin/bash")
+        process.arguments = ["-c", shellScript]
+        
+        do {
+            try process.run()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                NSApplication.shared.terminate(self)
+            }
+        } catch {
+            print("Failed to run update process: \(error)")
+        }
     }
     
     @objc func forceSyncLogs() {
