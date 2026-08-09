@@ -300,6 +300,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         NSApplication.shared.terminate(self)
     }
     
+    @objc func openUpdateUrl(_ sender: NSMenuItem) {
+        if let urlStr = sender.representedObject as? String, let url = URL(string: urlStr) {
+            NSWorkspace.shared.open(url)
+        }
+    }
+    
     func pollStats() {
         let url = URL(string: "http://127.0.0.1:5333/api/stats")!
         let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
@@ -425,6 +431,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
         if let openrouter = providers["OpenRouter"] as? [String: Any], let cost = openrouter["cost"] as? Double {
             openrouterLabel.stringValue = String(format: "  OpenRouter: $%.3f", cost)
+        }
+        
+        // Dynamic Update Available Menu Item Injection
+        if let updateAvailable = json["update_available"] as? [String: Any],
+           let ver = updateAvailable["version"] as? String,
+           let urlStr = updateAvailable["url"] as? String {
+            
+            if let menu = statusItem.menu {
+                if menu.item(withTitle: "⚡ Update Available (v\(ver))...") == nil {
+                    // Clean up any old update items
+                    for item in menu.items {
+                        if item.title.contains("Update Available") {
+                            menu.removeItem(item)
+                        }
+                    }
+                    
+                    let uItem = NSMenuItem(title: "⚡ Update Available (v\(ver))...", action: #selector(openUpdateUrl), keyEquivalent: "")
+                    uItem.target = self
+                    uItem.representedObject = urlStr
+                    // Insert at index 0 (top of the dropdown)
+                    menu.insertItem(uItem, at: 0)
+                    
+                    // Add a separator below the update item if needed
+                    if menu.items.count > 1 && !menu.items[1].isSeparatorItem {
+                        menu.insertItem(NSMenuItem.separator(), at: 1)
+                    }
+                }
+            }
+        } else {
+            // Remove update item if not available
+            if let menu = statusItem.menu {
+                for (index, item) in menu.items.enumerated().reversed() {
+                    if item.title.contains("Update Available") {
+                        menu.removeItem(item)
+                        if index < menu.items.count && menu.items[index].isSeparatorItem {
+                            menu.removeItem(at: index)
+                        }
+                    }
+                }
+            }
         }
     }
 }

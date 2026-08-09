@@ -168,6 +168,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
             
+            // 1b. Update Available Banner
+            const updateBanner = document.getElementById('updateBanner');
+            const updateVersionText = document.getElementById('updateVersionText');
+            const updateLink = document.getElementById('updateLink');
+            if (data.update_available) {
+                if (updateBanner && updateVersionText && updateLink) {
+                    updateVersionText.textContent = `v${data.update_available.version}`;
+                    updateLink.href = data.update_available.url;
+                    updateBanner.style.display = 'flex';
+                }
+            } else if (updateBanner) {
+                updateBanner.style.display = 'none';
+            }
+            
             // 2. Radial Budget Gauge
             const circumference = 2 * Math.PI * 42; // r=42 -> 263.89
             const percentage = budget > 0 ? (stats.cost / budget) : 0;

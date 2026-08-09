@@ -39,6 +39,36 @@ os.makedirs(BASE_DIR, exist_ok=True)
 DB_PATH = os.path.join(BASE_DIR, "usage.db")
 PRICE_MAP_PATH = os.path.join(BASE_DIR, "model_prices.json")
 
+VERSION = "0.2.9"
+LATEST_VERSION_INFO = None
+
+def check_for_updates():
+    global LATEST_VERSION_INFO
+    # Wait a bit on boot to let network connect
+    time.sleep(5)
+    while True:
+        try:
+            url = "https://api.github.com/repos/smriti-memcore/aimeter/releases/latest"
+            req = urllib.request.Request(
+                url, 
+                headers={"User-Agent": "AIMeter-Client"}
+            )
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                tag = data.get("tag_name", "").strip("v")
+                html_url = data.get("html_url", "")
+                if tag:
+                    LATEST_VERSION_INFO = {
+                        "version": tag,
+                        "url": html_url
+                    }
+        except Exception as e:
+            print(f"Check for updates failed: {e}")
+        time.sleep(43200) # Check every 12 hours
+
+# Start check-for-updates background thread
+threading.Thread(target=check_for_updates, daemon=True).start()
+
 # Fallback pricing dictionary (cost per 1 Million tokens)
 FALLBACK_PRICING = {
     # Anthropic
@@ -511,6 +541,18 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
         row = cursor.fetchone()
         menu_bar_cost = row["total"] if row and row["total"] is not None else 0.0
         
+        # Check if update is available
+        update_avail = None
+        if LATEST_VERSION_INFO:
+            try:
+                curr_parts = [int(p) for p in VERSION.split(".")]
+                latest_parts = [int(p) for p in LATEST_VERSION_INFO["version"].split(".")]
+                if latest_parts > curr_parts:
+                    update_avail = LATEST_VERSION_INFO
+            except Exception:
+                if LATEST_VERSION_INFO["version"] != VERSION:
+                    update_avail = LATEST_VERSION_INFO
+
         conn.close()
         
         response_data = {
@@ -527,7 +569,8 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
             "models": models,
             "recent_logs": recent,
             "trend": trend,
-            "config": config
+            "config": config,
+            "update_available": update_avail
         }
         
         self.send_response(200)

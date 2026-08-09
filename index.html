@@ -43,6 +43,15 @@
             </div>
         </header>
 
+        <!-- Dynamic Update Notification Banner -->
+        <div id="updateBanner" class="update-banner" style="display: none; background: rgba(129, 140, 248, 0.12); border: 1px solid rgba(129, 140, 248, 0.25); border-radius: 14px; padding: 0.75rem 1.25rem; margin-bottom: 1.25rem; justify-content: space-between; align-items: center; font-size: 0.85rem; color: var(--text-main); font-weight: 600; backdrop-filter: blur(8px); animation: fadeIn 0.4s ease;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span>⚡</span>
+                <span>A new stable version of AIMeter is available: <strong id="updateVersionText" style="color: var(--color-primary);">v0.0.0</strong>!</span>
+            </div>
+            <a id="updateLink" href="#" target="_blank" class="btn btn-glass-primary" style="padding: 0.4rem 0.85rem; font-size: 0.75rem; border-radius: 8px; font-weight: 700; text-decoration: none;">Get Update</a>
+        </div>
+
         <!-- 3-Column Dashboard Layout -->
         <main class="hub-grid">
             <!-- Left: Hero Analytics (Budget & Trend) -->
