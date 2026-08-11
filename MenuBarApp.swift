@@ -115,7 +115,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     
     func applicationDidFinishLaunching(_ notification: Notification) {
         DaemonManager.shared.startDaemonIfNeeded()
-        
+
+        createStatusItem()
+        setupMenu()
+
+        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+            self?.ensureStatusItem()
+            self?.pollStats()
+        }
+
+        pollStats()
+
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self,
+            selector: #selector(handleWake),
+            name: NSWorkspace.didWakeNotification,
+            object: nil
+        )
+    }
+
+    func createStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
             button.title = "$0.00"
@@ -126,14 +145,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             }
             button.target = self
         }
-        
-        setupMenu()
-        
-        timer = Timer.scheduledTimer(withTimeInterval: 5.0, repeats: true) { [weak self] _ in
+    }
+
+    func ensureStatusItem() {
+        if statusItem.button == nil {
+            createStatusItem()
+            setupMenu()
+        }
+    }
+
+    @objc func handleWake() {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.ensureStatusItem()
             self?.pollStats()
         }
-        
-        pollStats()
     }
     
     func applicationWillTerminate(_ notification: Notification) {
@@ -439,4 +464,6 @@ let app = NSApplication.shared
 let delegate = AppDelegate()
 app.delegate = delegate
 app.setActivationPolicy(.accessory)
-app.run()
+withExtendedLifetime(delegate) {
+    app.run()
+}
