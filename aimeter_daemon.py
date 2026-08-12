@@ -225,13 +225,15 @@ class PriceRegistry:
         cursor.execute("SELECT input_cost_per_m, output_cost_per_m FROM pricing_overrides WHERE model = ?", (model_name,))
         row = cursor.fetchone()
         conn.close()
-        
+
         if row:
-            return {"input": row["input_cost_per_m"], "output": row["output_cost_per_m"]}
-            
+            return {"input": row["input_cost_per_m"], "output": row["output_cost_per_m"],
+                    "cache_creation": row["input_cost_per_m"] * 1.25,
+                    "cache_read": row["input_cost_per_m"] * 0.1}
+
         # 2. Check LiteLLM prices (keys match model name or prefix)
         clean_name = model_name.lower().strip()
-        
+
         # Exact match or substring search in LiteLLM registry
         matched_key = None
         if clean_name in self.prices:
@@ -242,20 +244,25 @@ class PriceRegistry:
                 if k.lower() in clean_name or clean_name in k.lower():
                     matched_key = k
                     break
-                    
+
         if matched_key and "input_cost_per_token" in self.prices[matched_key]:
             entry = self.prices[matched_key]
             input_cost = entry.get("input_cost_per_token", 0.0) * 1_000_000
             output_cost = entry.get("output_cost_per_token", 0.0) * 1_000_000
-            return {"input": input_cost, "output": output_cost}
-            
+            cache_creation_cost = entry.get("cache_creation_input_token_cost", entry.get("input_cost_per_token", 0.0) * 1.25) * 1_000_000
+            cache_read_cost = entry.get("cache_read_input_token_cost", entry.get("input_cost_per_token", 0.0) * 0.1) * 1_000_000
+            return {"input": input_cost, "output": output_cost,
+                    "cache_creation": cache_creation_cost, "cache_read": cache_read_cost}
+
         # 3. Fallback to hardcoded list
         for key, value in FALLBACK_PRICING.items():
             if key in clean_name:
-                return value
-                
+                return {**value,
+                        "cache_creation": value["input"] * 1.25,
+                        "cache_read": value["input"] * 0.1}
+
         # Default fallback (very cheap standard model guess if unknown)
-        return {"input": 2.00, "output": 10.00}
+        return {"input": 2.00, "output": 10.00, "cache_creation": 2.50, "cache_read": 0.20}
 
 # Global registry instance
 price_registry = PriceRegistry()
@@ -367,27 +374,31 @@ class ClaudeLogWatcher:
                 usage = msg.get("usage")
                 
         if usage and isinstance(usage, dict):
-            # Extract timestamp from JSON if available to preserve history
             timestamp = data.get("timestamp")
-            
-            # Extract tokens
+
             input_tokens = usage.get("input_tokens", 0) or usage.get("prompt_tokens", 0) or usage.get("promptTokenCount", 0)
             output_tokens = usage.get("output_tokens", 0) or usage.get("completion_tokens", 0) or usage.get("candidatesTokenCount", 0)
-            
-            if input_tokens == 0 and output_tokens == 0:
+            cache_creation_tokens = usage.get("cache_creation_input_tokens", 0) or 0
+            cache_read_tokens = usage.get("cache_read_input_tokens", 0) or 0
+
+            total_input = input_tokens + cache_creation_tokens + cache_read_tokens
+            if total_input == 0 and output_tokens == 0:
                 return
-                
-            # Find model
+
             model = data.get("model") or data.get("message", {}).get("model") or data.get("metadata", {}).get("model") or "unknown"
-            
-            # Fetch cost
+
             pricing = price_registry.get_pricing(model)
-            cost = ((input_tokens * pricing["input"]) + (output_tokens * pricing["output"])) / 1_000_000.0
-            
+            cost = (
+                (input_tokens * pricing["input"])
+                + (output_tokens * pricing["output"])
+                + (cache_creation_tokens * pricing.get("cache_creation", pricing["input"] * 1.25))
+                + (cache_read_tokens * pricing.get("cache_read", pricing["input"] * 0.1))
+            ) / 1_000_000.0
+
             log_usage(
                 provider="Anthropic",
                 model=model,
-                input_tokens=input_tokens,
+                input_tokens=total_input,
                 output_tokens=output_tokens,
                 cost=cost,
                 source="Claude Code",
@@ -821,17 +832,29 @@ class APILocalProxyHandler(http.server.BaseHTTPRequestHandler):
                     
             if input_tokens == 0 and output_tokens == 0:
                 return
-                
+
+            cache_creation_match = re.search(r'"cache_creation_input_tokens"\s*:\s*(\d+)', resp_str)
+            cache_read_match = re.search(r'"cache_read_input_tokens"\s*:\s*(\d+)', resp_str)
+            cache_creation_tokens = int(cache_creation_match.group(1)) if cache_creation_match else 0
+            cache_read_tokens = int(cache_read_match.group(1)) if cache_read_match else 0
+
             pricing = price_registry.get_pricing(model)
-            cost = ((input_tokens * pricing["input"]) + (output_tokens * pricing["output"])) / 1_000_000.0
-            
+            cost = (
+                (input_tokens * pricing["input"])
+                + (output_tokens * pricing["output"])
+                + (cache_creation_tokens * pricing.get("cache_creation", pricing["input"] * 1.25))
+                + (cache_read_tokens * pricing.get("cache_read", pricing["input"] * 0.1))
+            ) / 1_000_000.0
+
+            total_input = input_tokens + cache_creation_tokens + cache_read_tokens
+
             req_id_match = re.search(r'"id"\s*:\s*"([^"]+)"', resp_str)
             request_id = req_id_match.group(1) if req_id_match else f"proxy_{int(time.time()*1000)}_{input_tokens}_{output_tokens}"
-            
+
             log_usage(
                 provider=provider,
                 model=model,
-                input_tokens=input_tokens,
+                input_tokens=total_input,
                 output_tokens=output_tokens,
                 cost=cost,
                 source="API Proxy",
