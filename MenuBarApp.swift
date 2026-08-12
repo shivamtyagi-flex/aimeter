@@ -102,6 +102,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var openrouterLabel: NSTextField!
     
     var timer: Timer?
+    var currentPollRange: String = "day"
     
     func createLabelItem(title: String, isHeader: Bool = false) -> (NSMenuItem, NSTextField) {
         let item = NSMenuItem()
@@ -499,7 +500,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     func pollStats() {
-        let url = URL(string: "http://127.0.0.1:5333/api/stats")!
+        let url = URL(string: "http://127.0.0.1:5333/api/stats?range=\(currentPollRange)")!
         let task = URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
             guard let self = self else { return }
             
@@ -567,9 +568,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             if period == "month" {
                 displaySuffix = " (M)"
                 targetBudget = budget * 30
+                currentPollRange = "month"
             } else if period == "year" {
                 displaySuffix = " (Y)"
                 targetBudget = budget * 365
+                currentPollRange = "year"
+            } else {
+                currentPollRange = "day"
             }
         }
         
