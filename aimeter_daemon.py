@@ -39,7 +39,15 @@ os.makedirs(BASE_DIR, exist_ok=True)
 DB_PATH = os.path.join(BASE_DIR, "usage.db")
 PRICE_MAP_PATH = os.path.join(BASE_DIR, "model_prices.json")
 
-VERSION = "0.3.4"
+VERSION = "0.3.5"
+try:
+    version_file = os.path.join(os.path.dirname(os.path.abspath(__file__)), "version.txt")
+    if os.path.exists(version_file):
+        with open(version_file, "r") as f:
+            VERSION = f.read().strip()
+except Exception:
+    pass
+
 LATEST_VERSION_INFO = None
 
 def check_for_updates():

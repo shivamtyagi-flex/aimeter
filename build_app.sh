@@ -28,10 +28,14 @@ cp index.css "$RES_DIR/"
 cp dashboard.js "$RES_DIR/"
 cp com.aimeter.app.plist "$RES_DIR/"
 cp AppIcon.icns "$RES_DIR/"
+cp version.txt "$RES_DIR/"
+
+# Read version from version.txt
+VERSION=$(cat version.txt | xargs)
 
 # Generate Info.plist
-echo "Generating Info.plist..."
-cat << 'EOF' > "${CONTENTS_DIR}/Info.plist"
+echo "Generating Info.plist (Version: ${VERSION})..."
+cat << EOF > "${CONTENTS_DIR}/Info.plist"
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
@@ -45,7 +49,7 @@ cat << 'EOF' > "${CONTENTS_DIR}/Info.plist"
     <key>CFBundlePackageType</key>
     <string>APPL</string>
     <key>CFBundleShortVersionString</key>
-    <string>0.2.2</string>
+    <string>${VERSION}</string>
     <key>CFBundleIconFile</key>
     <string>AppIcon</string>
     <key>LSUIElement</key>

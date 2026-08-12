@@ -83,7 +83,13 @@ class DaemonManager {
 }
 
 class AppDelegate: NSObject, NSApplicationDelegate {
-    let CURRENT_VERSION = "0.3.4"
+    var CURRENT_VERSION: String {
+        if let dict = Bundle.main.infoDictionary,
+           let version = dict["CFBundleShortVersionString"] as? String {
+            return version
+        }
+        return "0.3.5"
+    }
     var statusItem: NSStatusItem!
     var menu: NSMenu!
     
