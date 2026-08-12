@@ -52,32 +52,28 @@ LATEST_VERSION_INFO = None
 
 def check_for_updates():
     global LATEST_VERSION_INFO
-    # Wait a bit on boot to let network connect
     time.sleep(5)
     while True:
         try:
-            url = "https://api.github.com/repos/smriti-memcore/aimeter/releases/latest"
-            req = urllib.request.Request(
-                url, 
-                headers={"User-Agent": "AIMeter-Client"}
-            )
-            with urllib.request.urlopen(req, timeout=5) as response:
-                data = json.loads(response.read().decode())
-                tag = data.get("tag_name", "").strip("v")
-                html_url = data.get("html_url", "")
-                dmg_url = html_url
-                for asset in data.get("assets", []):
-                    if asset.get("name") == "AIMeter.dmg":
-                        dmg_url = asset.get("browser_download_url", html_url)
-                        break
-                if tag:
+            # Use redirect-based check — no API rate limit
+            url = "https://github.com/smriti-memcore/aimeter/releases/latest"
+            req = urllib.request.Request(url, headers={"User-Agent": "AIMeter-Client"})
+            with urllib.request.urlopen(req, timeout=10) as response:
+                final_url = response.url
+                # Redirects to .../releases/tag/v0.3.6
+                tag = final_url.rstrip("/").split("/")[-1].lstrip("v")
+                if tag and tag != VERSION:
+                    dmg_url = f"https://github.com/smriti-memcore/aimeter/releases/download/v{tag}/AIMeter.dmg"
                     LATEST_VERSION_INFO = {
                         "version": tag,
                         "url": dmg_url
                     }
+                    print(f"Update available: v{tag} (current: v{VERSION})")
+                else:
+                    LATEST_VERSION_INFO = None
         except Exception as e:
             print(f"Check for updates failed: {e}")
-        time.sleep(43200) # Check every 12 hours
+        time.sleep(43200)
 
 # Start check-for-updates background thread
 threading.Thread(target=check_for_updates, daemon=True).start()

@@ -295,13 +295,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     
     @objc func checkForUpdatesManually() {
-        let url = URL(string: "https://api.github.com/repos/smriti-memcore/aimeter/releases/latest")!
+        // Use redirect-based check to avoid GitHub API rate limits
+        let url = URL(string: "https://github.com/smriti-memcore/aimeter/releases/latest")!
         var request = URLRequest(url: url)
         request.setValue("AIMeter-Updater-Swift", forHTTPHeaderField: "User-Agent")
-        
+
         let task = URLSession.shared.dataTask(with: request) { [weak self] data, response, error in
             guard let self = self else { return }
-            
+
             if error != nil {
                 DispatchQueue.main.async {
                     let alert = NSAlert()
@@ -313,62 +314,50 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                 }
                 return
             }
-            
-            guard let data = data else { return }
-            do {
-                if let json = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                   let tag = json["tag_name"] as? String {
-                    
-                    let ver = tag.trimmingCharacters(in: CharacterSet(charactersIn: "v"))
-                    
-                    // Parse direct download url from assets
-                    var dmgUrl = json["html_url"] as? String ?? "https://github.com/smriti-memcore/aimeter/releases"
-                    if let assets = json["assets"] as? [[String: Any]] {
-                        for asset in assets {
-                            if let name = asset["name"] as? String, name == "AIMeter.dmg",
-                               let downloadUrl = asset["browser_download_url"] as? String {
-                                dmgUrl = downloadUrl
-                                break
-                            }
-                        }
-                    }
-                    
-                    DispatchQueue.main.async {
-                        let latestParts = ver.split(separator: ".").compactMap { Int($0) }
-                        let currentParts = self.CURRENT_VERSION.split(separator: ".").compactMap { Int($0) }
-                        
-                        var hasUpdate = false
-                        if latestParts.count == 3 && currentParts.count == 3 {
-                            if latestParts[0] > currentParts[0] { hasUpdate = true }
-                            else if latestParts[0] == currentParts[0] && latestParts[1] > currentParts[1] { hasUpdate = true }
-                            else if latestParts[0] == currentParts[0] && latestParts[1] == currentParts[1] && latestParts[2] > currentParts[2] { hasUpdate = true }
-                        } else {
-                            hasUpdate = (ver != self.CURRENT_VERSION)
-                        }
-                        
-                        if hasUpdate {
-                            let alert = NSAlert()
-                            alert.messageText = "Update Available"
-                            alert.informativeText = "A new stable version of AIMeter is available (v\(ver)). Would you like to download and install it in one click?"
-                            alert.alertStyle = .informational
-                            alert.addButton(withTitle: "Update Now")
-                            alert.addButton(withTitle: "Cancel")
-                            
-                            if alert.runModal() == .alertFirstButtonReturn {
-                                self.performOneStepUpdate(downloadUrl: dmgUrl)
-                            }
-                        } else {
-                            let alert = NSAlert()
-                            alert.messageText = "Up to Date"
-                            alert.informativeText = "AIMeter (v\(self.CURRENT_VERSION)) is already at the latest version."
-                            alert.alertStyle = .informational
-                            alert.addButton(withTitle: "OK")
-                            alert.runModal()
-                        }
-                    }
+
+            // The URL redirects to /releases/tag/v0.3.6 — extract version from final URL
+            guard let httpResponse = response as? HTTPURLResponse,
+                  let finalUrl = httpResponse.url?.absoluteString else { return }
+
+            let ver = finalUrl.components(separatedBy: "/").last?
+                .trimmingCharacters(in: CharacterSet(charactersIn: "v")) ?? ""
+
+            guard !ver.isEmpty else { return }
+
+            let dmgUrl = "https://github.com/smriti-memcore/aimeter/releases/download/v\(ver)/AIMeter.dmg"
+
+            DispatchQueue.main.async {
+                let latestParts = ver.split(separator: ".").compactMap { Int($0) }
+                let currentParts = self.CURRENT_VERSION.split(separator: ".").compactMap { Int($0) }
+
+                var hasUpdate = false
+                if latestParts.count == 3 && currentParts.count == 3 {
+                    if latestParts[0] > currentParts[0] { hasUpdate = true }
+                    else if latestParts[0] == currentParts[0] && latestParts[1] > currentParts[1] { hasUpdate = true }
+                    else if latestParts[0] == currentParts[0] && latestParts[1] == currentParts[1] && latestParts[2] > currentParts[2] { hasUpdate = true }
+                } else {
+                    hasUpdate = (ver != self.CURRENT_VERSION)
                 }
-            } catch {
-                print("JSON parsing error: \(error)")
+
+                if hasUpdate {
+                    let alert = NSAlert()
+                    alert.messageText = "Update Available"
+                    alert.informativeText = "A new stable version of AIMeter is available (v\(ver)). Would you like to download and install it in one click?"
+                    alert.alertStyle = .informational
+                    alert.addButton(withTitle: "Update Now")
+                    alert.addButton(withTitle: "Cancel")
+
+                    if alert.runModal() == .alertFirstButtonReturn {
+                        self.performOneStepUpdate(downloadUrl: dmgUrl)
+                    }
+                } else {
+                    let alert = NSAlert()
+                    alert.messageText = "Up to Date"
+                    alert.informativeText = "AIMeter (v\(self.CURRENT_VERSION)) is already at the latest version."
+                    alert.alertStyle = .informational
+                    alert.addButton(withTitle: "OK")
+                    alert.runModal()
+                }
             }
         }
         task.resume()
