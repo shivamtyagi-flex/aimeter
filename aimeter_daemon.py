@@ -39,7 +39,7 @@ os.makedirs(BASE_DIR, exist_ok=True)
 DB_PATH = os.path.join(BASE_DIR, "usage.db")
 PRICE_MAP_PATH = os.path.join(BASE_DIR, "model_prices.json")
 
-VERSION = "0.3.3"
+VERSION = "0.3.4"
 LATEST_VERSION_INFO = None
 
 def check_for_updates():
