@@ -72,7 +72,7 @@ jobs:
           git checkout -b "update-${VERSION}"
           git add Formula/aimeter.rb
           git commit -m "Update aimeter to ${VERSION}"
-          git push origin "update-${VERSION}"
+          git push origin "update-${VERSION}" --force
 
           curl -X POST \
             -H "Authorization: token ${TAP_TOKEN}" \
